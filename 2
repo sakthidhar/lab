@@ -1,1 +1,306 @@
 
+
+cd ros2_ws/src/my_package/my_package/
+touch publisher.py
+chmod +x publisher.py
+
+open the my_package  using Visual Studio and edit the file publisher.py
+
+
+
+#!/usr/bin/env python3
+import rclpy
+from rclpy.node import Node
+from example_interfaces.msg import String
+
+class RobotPublisher(Node):
+    
+    def __init__(self):
+        super().__init__("publisher")
+        self.robot_name_="ROBOT"
+        self.publisher_ = self.create_publisher(String, "robot_news", 10)
+        self.timer_ = self.create_timer(0.5, self.publish_news)
+        self.get_logger().info("Node Started")
+    
+    
+    def publish_news(self):
+        msg = String()
+        msg.data = "Hello " + str(self.robot_name_)
+        self.publisher_.publish(msg)        
+    
+def main(args=None):
+    rclpy.init(args=args)
+    node = RobotPublisher()
+    rclpy.spin(node)
+    rclpy.shutdown()
+
+if __name__ == '__main__':
+    main()
+
+
+
+Edit the setup.py
+
+
+from setuptools import setup
+package_name = 'my_package'  or ‘lab2’
+
+setup(
+    name=package_name,
+    version='0.0.0',
+    packages=[package_name],
+    data_files=[
+        ('share/ament_index/resource_index/packages',
+            ['resource/' + package_name]),
+        ('share/' + package_name, ['package.xml']),
+    ],
+    install_requires=['setuptools'],
+    zip_safe=True,
+    maintainer='asha',
+    maintainer_email='asha@todo.todo',
+    description='TODO: Package description',
+    license='TODO: License declaration',
+    tests_require=['pytest'],
+    entry_points={
+        'console_scripts': [
+	'sample = my_package.sample:main',
+              'publisher = my_package.publisher:main'    
+                                       or
+               'publisher =  lab2.publisher:main'
+        ],
+    },
+)
+
+
+Execute in Terminal #1
+colcon build
+
+Execute in Terminal #2
+source ~/.bashrc
+ros2 run my_package publisher    
+             or   
+ros2 run lab2 publisher  
+
+
+Execute in Terminal #3
+source ~/.bashrc
+ros2 topic list
+ros2 topic echo /robot_news
+
+
+Subscriber node
+
+Execute in Terminal #1
+cd
+cd ros2_ws/src/my_package/my_package/  
+      or  
+cd ros2_ws/src/lab2/lab2/  
+touch subscriber.py
+chmod +x subscriber.py
+ 
+Edit the file robot_subscriber.py using Visual Studio Editor
+
+#!/usr/bin/env python3
+import rclpy
+from rclpy.node import Node
+from example_interfaces.msg import String     
+     
+class RobotSubscriber(Node):
+    def __init__(self):
+        super().__init__("subscriber")
+        self.subscriber_ = self.create_subscription(String, "robot_news", self.callback_robot_news, 10)
+        self.get_logger().info("robot_subscriber Node Started")
+        
+    def callback_robot_news(self, msg):
+        self.get_logger().info(msg.data)
+            
+     
+def main(args=None):
+    rclpy.init(args=args)
+    node = RobotSubscriber()
+    rclpy.spin(node)
+    rclpy.shutdown()
+     
+     
+if __name__ == "__main__":
+    main()
+
+Edit the setup.py
+
+from setuptools import setup
+package_name = 'my_package' or ‘lab2’
+
+setup(
+    name=package_name,
+    version='0.0.0',
+    packages=[package_name],
+    data_files=[
+        ('share/ament_index/resource_index/packages',
+            ['resource/' + package_name]),
+        ('share/' + package_name, ['package.xml']),
+    ],
+    install_requires=['setuptools'],
+    zip_safe=True,
+    maintainer='asha',
+    maintainer_email='asha@todo.todo',
+    description='TODO: Package description',
+    license='TODO: License declaration',
+    tests_require=['pytest'],
+    entry_points={
+        'console_scripts': [
+	'sample = my_package.sample:main',
+            ‘publisher = my_package.publisher:main’,
+            'subscriber = my_package.subscriber:main'
+        ],
+    },
+)
+
+Execute in Terminal #1
+cd
+cd ros2_ws
+colcon build
+ros2 run my_package publisher
+
+Execute in Terminal #2
+ros2 run my_package subscriber
+
+
+Execute in Terminal #3
+ros2 node list
+ros2 topic list
+ros2 topic info /robot_news
+ros2 topic echo /robot_news
+
+Execute in Terminal #4
+rqt_graph
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+2. Launch Files
+
+
+Execute in Terminal #1
+
+cd ~/ros2_ws/src/my_package
+mkdir launch
+cd launch
+touch my_package_launch_file.launch.py
+chmod +x my_package_launch_file.launch.py
+
+Type the following in the my_package_launch_file.launch.py
+
+from launch import LaunchDescription
+from launch_ros.actions import Node
+
+
+def generate_launch_description():
+    return LaunchDescription([
+        Node(
+            package='my_package',
+            executable='publisher',
+            output='screen'),
+        Node(
+            package='my_package',
+            executable='subscriber',
+            output='screen'),
+    ])
+
+Modify the setup.py file to generate an executable from the Python file you just created.
+
+from setuptools import setup
+from glob import glob
+import os
+
+package_name = 'my_package'
+
+setup(
+    name=package_name,
+    version='0.0.0',
+    packages=[package_name],
+    data_files=[
+        ('share/ament_index/resource_index/packages',
+            ['resource/' + package_name]),
+        ('share/' + package_name, ['package.xml']),
+        (os.path.join('share', package_name), glob('launch/*')),
+    ],
+    install_requires=['setuptools'],
+    zip_safe=True,
+    maintainer='asha',
+    maintainer_email='asha@todo.todo',
+    description='TODO: Package description',
+    license='TODO: License declaration',
+    tests_require=['pytest'],
+    entry_points={
+        'console_scripts': [
+        'sample = my_package.sample:main'
+        ],
+    },
+)
+
+
+Execute in Terminal #1
+cd
+cd ~/ros2_ws
+colcon build
+source ~/ros2_ws/install/setup.bash
+ros2 launch my_package my_package_launch_file.launch.py
+
+Execute in Terminal #2
+
+ros2 node list
+ros2 topic list
+ros2 topic echo /robot_news
+
+Execute in Terminal #3
+rqt_graph
+
+Post LAB Exercises:
+Try: Modify the subscriber code to publish number at 1Hz on the topic /number
+
+
+#!/usr/bin/env python3
+import rclpy
+from rclpy.node import Node
+from example_interfaces.msg import String, Int32
+global count
+     
+class RobotSubscriber(Node):
+    def __init__(self):
+        super().__init__("robot_subscriber")
+        self.count_ = 0
+        self.subscriber_ = self.create_subscription(String, "robot_news", self.callback_robot_news, 10)
+        self.publisher_ = self.create_publisher(Int32, "robot_number", 10)
+        self.timer_ = self.create_timer(1, self.send_number)
+        self.get_logger().info("robot_subscriber and publisher Node Started")
+        
+    def callback_robot_news(self, msg):
+        self.get_logger().info(msg.data)
+            
+    def send_number(self):
+        number = Int32()
+        number.data = self.count_
+        self.count_ +=1
+        self.publisher_.publish(number)
+        
+def main(args=None):
+    rclpy.init(args=args)
+    node = RobotSubscriber()
+    rclpy.spin(node)
+    rclpy.shutdown()
+     
+     
+if __name__ == "__main__":
+    main()
