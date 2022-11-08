@@ -1,0 +1,259 @@
+Execute in Terminal #1
+cd ~/ros2_ws/src/my_package/my_package
+Execute in Terminal #2
+touch turtle_controller.py
+chmod + turtle_controller.py
+
+Open src with Visual Studio Application
+Enter the code in turtle_controller.py
+
+#!/usr/bin/env python3
+import rclpy
+from rclpy.node import Node
+from turtlesim.msg import Pose
+from geometry_msgs.msg import Twist
+import math
+  
+  
+class TurtleControllerNode(Node):
+    def __init__(self):
+        super().__init__("turtle_controller")
+        self.target_x = 8.0
+        self.target_y = 4.0
+        self.pose_ = None
+        self.cmd_vel_publisher_ = self.create_publisher(Twist, "turtle1/cmd_vel", 10)
+        self.pose_subscriber_ = self.create_subscription(Pose, "turtle1/pose", self.callback_turtle_pose, 10)
+        self.control_loop_timer_ = self.create_timer(0.01, self.control_loop)
+    
+    def callback_turtle_pose(self,msg):
+        self.pose_ = msg
+        
+      
+    def control_loop(self):
+        if self.pose_ == None:
+            return
+        dist_x = self.target_x - self.pose_.x
+        dist_y = self.target_y - self.pose_.y
+        distance = math.sqrt(dist_x * dist_x + dist_y * dist_y)
+        msg = Twist()
+        if distance > 0.5:
+            msg.linear.x = distance
+            goal_theta = math.atan2(dist_y, dist_x)
+            diff = goal_theta - self.pose_.theta
+            
+            if diff > math.pi:
+                diff -= 2*math.pi
+            elif diff < -math.pi:
+                diff += 2*math.pi
+                
+            msg.angular.z = diff
+        else:
+            msg.linear.x = 0.0
+            msg.angular.z = 0.0
+            
+        self.cmd_vel_publisher_.publish(msg)
+        
+     
+def main(args=None):
+    rclpy.init(args=args)
+    node = TurtleControllerNode()
+    rclpy.spin(node)
+    rclpy.shutdown()
+    
+       
+if __name__ == "__main__":
+	main()
+
+Modify entry_points setup.py as
+
+entry_points={
+        'console_scripts': [
+        'sample = my_package.sample:main',
+        'robot_publisher = my_package.robot_publisher:main',
+        'robot_subscriber = my_package.robot_subscriber:main',
+        'turtlesim_controller = my_package.turtle_controller:main'
+        ],
+    },
+)
+
+Modify he package.xml as
+
+  <depend>rclpy</depend>
+  <depend>example_interfaces</depend>
+  <depend>my_robot_interface</depend>
+  <depend>turtlesim</depend>
+
+Execute in Terminal #1
+ros2 run turtlesim turtlesim_node
+
+Execute in Terminal #2
+
+colcon build --packages-select my_package --symlink-install
+
+Execute in Terminal #3
+
+ros2 run my_package turtlesim_controller
+
+Execute in Terminal #4
+ros2 service list
+ros2 service type /spawn
+ros2 interface show turtlesim/srv/Spawn
+
+
+
+
+
+
+msg.linear.x=1.0
+self.cmd_vel_publisher_.publish(msg)
+time.sleep(1)
+msg.linear.x=0.0
+self.cmd_vel_publisher_.publish(msg)
+
+msg.angular.z=(72*math.pi)/180
+self.cmd_vel_publisher_.publish(msg)
+time.sleep(0.5)
+msg.angular.z=0.0
+self.cmd_vel_publisher_.publish(msg)
+
+
+
+
+
+
+cd ros2_ws/src/my_package/my_package
+touch add_two_ints_server.py
+chmod +x add_two_ints_server.py
+
+Edit add_two_ints_server.py in visual studio editor
+
+
+#!/usr/bin/env python3
+import rclpy
+from rclpy.node import Node
+from example_interfaces.srv import AddTwoInts     
+     
+class AddTwoIntsServerNode(Node):
+    def __init__(self):
+        super().__init__("add_two_ints_server")
+        self.server_ = self.create_service(AddTwoInts, "add_two_ints", self.callback_add_two_ints)
+        self.get_logger().info("Add two ints server has been started")
+    
+    def callback_add_two_ints(self, request, response):
+        response.sum = request.a + request.b
+        self.get_logger().info(str(request.a)+ " + " + str(request.b) + " = " + str(response.sum))
+        return response
+
+def main(args=None):
+        rclpy.init(args=args)
+        node = AddTwoIntsServerNode()
+        rclpy.spin(node)
+        rclpy.shutdown()
+     
+if __name__ == "__main__":
+	main()
+
+Add executable name in setup.py
+ entry_points={
+        'console_scripts': [
+        'sample = my_package.sample:main',
+        'robot_publisher = my_package.robot_publisher:main',
+        'robot_subscriber = my_package.robot_subscriber:main',
+        'add_two_ints_server = my_package.add_two_ints_server:main'
+        ],
+
+
+Execute in Terminal #1
+cd
+cd ros2_ws
+colcon build
+
+Execute in Terminal #2
+source ~/ros2_ws/install/setup.bash
+ros2 run my_package add_two_ints_server
+
+Execute in Terminal #3
+ros2 service call /add_two_ints example_interfaces/srv/AddTwoInts "{a: 3, b: 4}"
+
+Ctrl + C in all terminal windows.
+Execute in Terminal #1
+cd
+cd ros2_ws/src/my_package/my_package/
+touch add_two_ints_client.py
+chmod +x add_two_ints_client.py
+
+Edit add_two_ints_client.py using visual studio editor
+
+#!/usr/bin/env python3
+import rclpy
+from rclpy.node import Node
+from example_interfaces.srv import AddTwoInts
+from functools import partial
+
+
+class AddTwoIntClientNode(Node):
+    def __init__(self):
+        super().__init__("add_two_ints_client")
+        self.call_add_two_int_server(6, 7)
+
+    def call_add_two_int_server(self, a, b):
+        client = self.create_client(AddTwoInts, "add_two_ints")
+        while not client.wait_for_service(1.0):
+            self.get_logger().warn("Waiting for Server Add Two Ints")
+        request = AddTwoInts.Request()
+        request.a = a
+        request.b = b
+        future = client.call_async(request)
+        future.add_done_callback(
+            partial(self.callback_call_two_ints, a=a, b=b))
+
+    def callback_call_two_ints(self, future, a, b):
+        try:
+            response = future.result()
+            self.get_logger().info(str(a) + " + " + str(b) + " = " + str(response.sum))
+
+        except Exception as e:
+            self.get_logger().error("Service call failed %r" % (e,))
+
+
+def main(args=None):
+    rclpy.init(args=args)
+    node = AddTwoIntClientNode()
+    rclpy.spin(node)
+    rclpy.shutdown()
+
+
+if __name__ == "__main__":
+    main()
+
+Add executable name in setup.py
+entry_points={
+        'sample = my_package.sample:main',
+        'robot_publisher = my_package.robot_publisher:main',
+        'robot_subscriber = my_package.robot_subscriber:main',
+        'add_two_ints_server = my_package.add_two_ints_server:main',
+        'add_two_ints_client = my_package.add_two_ints_client:main'    
+        ],
+
+Execute in Terminal #1
+cd
+cd ros2_ws
+colcon build
+
+Execute in Terminal #2
+ros2 run my_package add_two_ints_server
+
+Execute in Terminal #3
+ros2 run my_package add_two_ints_client
+
+Execute in Terminal #4
+ros2 node list
+
+Execute in Terminal #5
+ros2 service list
+rqt
+plugins→services→service caller
+service - /add_two_ints
+Enter the values under Expression for a and b
+Click call
+Response is viewed in the second window
